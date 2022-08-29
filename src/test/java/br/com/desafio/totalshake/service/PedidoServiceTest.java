@@ -90,16 +90,6 @@ public class PedidoServiceTest {
     class FindPedidoTestDTO {
 
         @Test
-        void shouldThrowException_whenFindingListOfPedidosWithDatetimeInFuture(){
-
-            LocalDateTime datetime = LocalDateTime.now().plusDays(15);
-
-            Executable executable = () -> pedidoService.findAllByDataHora(datetime);
-
-            assertThrows(FutureDateTimeException.class, executable);
-        }
-
-        @Test
         void shouldThrowException_whenFindingPedidoWithNegativeId(){
             Executable executable = () -> pedidoService.findById(NEGATIVE_ID);
 
@@ -145,25 +135,6 @@ public class PedidoServiceTest {
             PedidoDTO returnedPedido = pedidoService.findById(VALID_ID);
 
             assertEquals(expectedPedidoDTO, returnedPedido);
-        }
-
-        @Test
-        void shouldFindListOfPedido_whenDateTimeIsValid(){
-
-            List<Pedido> expectedPedidos = PedidoBuilder
-                    .getBuilder()
-                    .buildList();
-
-            List<PedidoDTO> expectedPedidosDTO = PedidoDTOBuilder
-                    .getBuilder()
-                    .buildList();
-
-            Mockito.doReturn(expectedPedidos)
-                    .when(pedidoRepository)
-                    .findAllByDataHora(Mockito.any(LocalDateTime.class));
-
-            List<PedidoDTO> returnedPedidoDTOS = pedidoService.findAllByDataHora(PedidoDTOBuilder.getBuilder().getBaseLocalDateTime());
-            assertTrue(expectedPedidosDTO.containsAll(returnedPedidoDTOS));
         }
     }
 
