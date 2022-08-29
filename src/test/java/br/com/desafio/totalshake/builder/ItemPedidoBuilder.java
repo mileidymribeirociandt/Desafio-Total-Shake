@@ -1,5 +1,10 @@
 package br.com.desafio.totalshake.builder;
 
+import br.com.desafio.totalshake.domain.entity.ItemPedido;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class ItemPedidoBuilder {
     private ItemPedido itemPedido;
     private List<ItemPedido> itensPedidos;
@@ -17,22 +22,22 @@ public class ItemPedidoBuilder {
     }
 
     public ItemPedidoBuilder validItemPedido(){
-        itemPedido.of(1, "descricao do item", PedidoBuilder.getBuilder().validPedido());
+        ItemPedido.of(1, "descricao do item", null);
         return this;
     }
 
     public ItemPedidoBuilder emptyItemPedido(){
-        itemPedido.of();
+        ItemPedido.of(null, null, null);
         return this;
     }
 
     public ItemPedidoBuilder itemPedidoWithQuantityBelowZero(){
-        itemPedido.of(-2, "descricao do item", PedidoBuilder.getBuilder().validPedido());
+        ItemPedido.of(-2, "descricao do item", null);
         return this;
     }
 
     public ItemPedidoBuilder itemPedidoWithQuantityEqualsZero(){
-        itemPedido.of(0, "descricao do item", PedidoBuilder.getBuilder().validPedido());
+        ItemPedido.of(0, "descricao do item", null);
         return this;
     }
 
@@ -45,6 +50,7 @@ public class ItemPedidoBuilder {
     }
 
     private void initList(){
-        itensPedidos.add(itemPedido.of(1, "descricao do item", PedidoBuilder.getBuilder().validPedido()));
+        itensPedidos = new ArrayList<>(1);
+        itensPedidos.add(itemPedido.of(1, "descricao do item", PedidoBuilder.getBuilder().validPedidoToReturn().build()));
     }
 }

@@ -1,6 +1,17 @@
 package br.com.desafio.totalshake.service;
 
+import br.com.desafio.totalshake.builder.ItemPedidoDTOBuilder;
+import br.com.desafio.totalshake.builder.PedidoBuilder;
+import br.com.desafio.totalshake.controller.dto.ItemPedidoDTO;
+import br.com.desafio.totalshake.domain.entity.ItemPedido;
+import br.com.desafio.totalshake.domain.entity.Pedido;
+import br.com.desafio.totalshake.domain.repository.ItemPedidoRepository;
 import br.com.desafio.totalshake.builder.ItemPedidoBuilder;
+import br.com.desafio.totalshake.service.impl.ItemPedidoServiceImpl;
+import br.com.desafio.totalshake.service.exceptions.EmptyItemPedidoException;
+import br.com.desafio.totalshake.service.exceptions.InvalidIdException;
+import br.com.desafio.totalshake.service.exceptions.InvalidQuantityException;
+import br.com.desafio.totalshake.service.exceptions.ItemPedidoNotFoundException;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
@@ -8,21 +19,24 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ItemPedidoServiceTest {
 
     @InjectMocks
-    private ItemPedidoService itemPedidoService;
+    private ItemPedidoServiceImpl itemPedidoService;
 
     @Mock
     private ItemPedidoRepository itemPedidoRepository;
 
-    private static final int NEGATIVE_ID = -2;
-    private static final int VALID_ID = 1;
-    private static final int ZERO_ID = 0;
-    private static final int NON_EXISTING_ID = Integer.MAX_VALUE;
+    private static final long NEGATIVE_ID = -2;
+    private static final long ZERO_ID = 0;
+
+    private static final long VALID_ID = 0;
+    private static final long NON_EXISTING_ID = Integer.MAX_VALUE;
 
     @BeforeAll
     public void openMocks() {
@@ -31,20 +45,22 @@ public class ItemPedidoServiceTest {
 
     @Nested
     @DisplayName("Save item pedido method scenarios test")
-    class SaveItemPedidoTest{
+    class SaveItemPedidoTestDTO {
 
         @Test
         void shouldThrowException_whenSavingEmptyItemPedido () {
 
-            ItemPedido emptyItemPedido = ItemPedidoBuilder
+            Pedido pedidoToSave = PedidoBuilder
+                    .getBuilder()
+                    .validPedidoToSave()
+                    .build();
+
+            ItemPedidoDTO emptyItemPedidoDTO = ItemPedidoDTOBuilder
                     .getBuilder()
                     .emptyItemPedido()
                     .build();
 
-            Mockito.when(itemPedidoRepository.save(emptyItemPedido))
-                    .thenThrow(new EmptyItemPedidoException());
-
-            Executable executable = () -> itemPedidoService.save(emptyItemPedido);
+            Executable executable = () -> itemPedidoService.save(emptyItemPedidoDTO, pedidoToSave);
 
             assertThrows(EmptyItemPedidoException.class, executable);
         }
@@ -52,15 +68,17 @@ public class ItemPedidoServiceTest {
         @Test
         void shouldThrowException_whenSavingItemPedidoWithQuantityEqualsZero () {
 
-            ItemPedido itemPedidoWithQuantityEqualsZero = ItemPedidoBuilder
+            Pedido pedidoToSave = PedidoBuilder
+                    .getBuilder()
+                    .validPedidoToSave()
+                    .build();
+
+            ItemPedidoDTO itemPedidoDTOWithQuantityEqualsZero = ItemPedidoDTOBuilder
                     .getBuilder()
                     .itemPedidoWithQuantityEqualsZero()
                     .build();
 
-            Mockito.when(itemPedidoRepository.save(itemPedidoWithQuantityEqualsZero))
-                    .thenThrow(new InvalidQuantityException());
-
-            Executable executable = () -> itemPedidoService.save(itemPedidoWithQuantityEqualsZero);
+            Executable executable = () -> itemPedidoService.save(itemPedidoDTOWithQuantityEqualsZero, pedidoToSave);
 
             assertThrows(InvalidQuantityException.class, executable);
         }
@@ -68,15 +86,17 @@ public class ItemPedidoServiceTest {
         @Test
         void shouldThrowException_whenSavingItemPedidoWithQuantityBelowZero () {
 
-            ItemPedido itemPedidoWithQuantityBelowZero = ItemPedidoBuilder
+            Pedido pedidoToSave= PedidoBuilder
                     .getBuilder()
-                    .itemPedidoWithQuantityBelowZero()
+                    .validPedidoToSave()
                     .build();
 
-            Mockito.when(itemPedidoRepository.save(itemPedidoWithQuantityBelowZero))
-                    .thenThrow(new InvalidQuantityException());
+            ItemPedidoDTO itemPedidoDTOWithQuantityEqualsZero = ItemPedidoDTOBuilder
+                    .getBuilder()
+                    .itemPedidoWithQuantityEqualsZero()
+                    .build();
 
-            Executable executable = () -> itemPedidoService.save(itemPedidoWithQuantityBelowZero);
+            Executable executable = () -> itemPedidoService.save(itemPedidoDTOWithQuantityEqualsZero, pedidoToSave);
 
             assertThrows(InvalidQuantityException.class, executable);
         }
@@ -85,46 +105,10 @@ public class ItemPedidoServiceTest {
 
     @Nested
     @DisplayName("Find item pedido method scenarios test")
-    class FindItemPedidoTest{
-
-        @Test
-        void shouldThrowException_whenFindNonExistingItemPedido () {
-
-            Mockito.when(itemPedidoRepository.findById(Mockito.anyInt()))
-                    .thenThrow(new ItemPedidoNotFoundException());
-
-            Executable executable = () -> itemPedidoService.findById(NON_EXISTING_ID);
-
-            assertThrows(ItemPedidoNotFoundException.class, executable);
-        }
-
-        @Test
-        void shouldThrowException_whenFindItemPedidoPassingIdEqualsZero () {
-
-            Mockito.when(itemPedidoRepository.findById(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
-
-            Executable executable = () -> itemPedidoService.findById(ZERO_ID);
-
-            assertThrows(InvalidIdException.class, executable);
-        }
-
-        @Test
-        void shouldThrowException_whenFindItemPedidoPassingIdBelowZero () {
-
-            Mockito.when(itemPedidoRepository.findById(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
-
-            Executable executable = () -> itemPedidoService.findById(NEGATIVE_ID);
-
-            assertThrows(InvalidIdException.class, executable);
-        }
+    class FindItemPedidoTestDTO {
 
         @Test
         void shouldThrowException_whenFindItemPedidoPassingIdPedidoEqualsZero () {
-
-            Mockito.when(itemPedidoRepository.findByPedidoId(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
 
             Executable executable = () -> itemPedidoService.findByPedidoId(ZERO_ID);
 
@@ -133,9 +117,6 @@ public class ItemPedidoServiceTest {
 
         @Test
         void shouldThrowException_whenFindItemPedidoPassingIdPedidoBelowZero () {
-
-            Mockito.when(itemPedidoRepository.findByPedidoId(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
 
             Executable executable = () -> itemPedidoService.findByPedidoId(NEGATIVE_ID);
 
@@ -146,20 +127,21 @@ public class ItemPedidoServiceTest {
 
     @Nested
     @DisplayName("Update item pedido method scenarios test")
-    class UpdateItemPedidoTest{
+    class UpdateItemPedidoTestDTO {
 
         @Test
         void shouldThrowException_whenUpdatingItemPedidoWithQuantityEqualsZero () {
 
-            ItemPedido itemPedido = ItemPedidoBuilder
+            ItemPedidoDTO itemPedidoDTO = ItemPedidoDTOBuilder
                     .getBuilder()
                     .itemPedidoWithQuantityEqualsZero()
                     .build();
 
-            Mockito.when(itemPedidoRepository.findByPedidoId(Mockito.anyInt()))
+
+            Mockito.when(itemPedidoRepository.findByPedidoId(Mockito.anyLong()))
                     .thenThrow(new InvalidQuantityException());
 
-            Executable executable = () -> itemPedidoService.update(itemPedido);
+            Executable executable = () -> itemPedidoService.updateAll(List.of(itemPedidoDTO), VALID_ID);
 
             assertThrows(InvalidQuantityException.class, executable);
 
@@ -168,55 +150,14 @@ public class ItemPedidoServiceTest {
         @Test
         void shouldThrowException_whenUpdatingItemPedidoWithQuantityBelowZero () {
 
-            ItemPedido itemPedido = ItemPedidoBuilder
+            ItemPedidoDTO itemPedidoDTO = ItemPedidoDTOBuilder
                     .getBuilder()
                     .itemPedidoWithQuantityBelowZero()
                     .build();
 
-            Mockito.when(itemPedidoRepository.findByPedidoId(Mockito.anyInt()))
-                    .thenThrow(new InvalidQuantityException());
-
-            Executable executable = () -> itemPedidoService.update(itemPedido);
+            Executable executable = () -> itemPedidoService.updateAll(List.of(itemPedidoDTO), VALID_ID);
 
             assertThrows(InvalidQuantityException.class, executable);
-        }
-
-    }
-
-    @Nested
-    @DisplayName("Delete pedido methods scenarios test")
-    class DeletePedidoTest{
-        @Test
-        void shouldThrowException_whenDeletingANonExistingItemPedidoById(){
-
-            Mockito.when(itemPedidoRepository.deleteById(Mockito.anyInt()))
-                    .thenThrow(new ItemPedidoNotFoundException());
-
-            Executable executable = () -> itemPedidoService.deleteById(NON_EXISTING_ID);
-
-            assertThrows(ItemPedidoNotFoundException.class, executable);
-        }
-
-        @Test
-        void shouldThrowException_whenDeletingAnItemPedidoPedidoPassingNegativeId(){
-
-            Mockito.when(itemPedidoRepository.deleteById(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
-
-            Executable executable = () -> itemPedidoService.deleteById(NEGATIVE_ID);
-
-            assertThrows(InvalidIdException.class, executable);
-        }
-
-        @Test
-        void shouldThrowException_whenDeletingAnItemPedidoPassingIdEqualsZero(){
-
-            Mockito.when(itemPedidoRepository.deleteById(Mockito.anyInt()))
-                    .thenThrow(new InvalidIdException());
-
-            Executable executable = () -> itemPedidoService.deleteById(ZERO_ID);
-
-            assertThrows(InvalidIdException.class, executable);
         }
 
     }

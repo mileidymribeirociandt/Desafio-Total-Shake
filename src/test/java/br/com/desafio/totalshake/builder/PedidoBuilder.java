@@ -1,14 +1,27 @@
 package br.com.desafio.totalshake.builder;
 
+import br.com.desafio.totalshake.domain.entity.ItemPedido;
+import br.com.desafio.totalshake.domain.entity.Pedido;
+import br.com.desafio.totalshake.domain.entity.Status;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PedidoBuilder {
-    private Pedido pedido;
+    private LocalDateTime baseLocalDateTime;
+    private final LocalDate baseDate = LocalDate.now().minusDays(2);
+    private final LocalTime baseTime = LocalTime.of(00, 00, 00, 000);
     private List<Pedido> pedidos;
+    private Pedido pedido;
+
+    private List<ItemPedido> itemPedidoList;
     private static PedidoBuilder builder = null;
 
     private PedidoBuilder() {
+        this.baseLocalDateTime = LocalDateTime.of(baseDate, baseTime);
         this.initPedidoList();
     }
 
@@ -19,33 +32,15 @@ public class PedidoBuilder {
         return builder;
     }
 
-    public PedidoBuilder emptyPedido(){
-        pedido.of();
+    public PedidoBuilder validPedidoToReturn(){
+        initValidItemPedidoListToWithPedido();
+        pedido = Pedido.of(baseLocalDateTime, Status.REALIZADO, itemPedidoList);
         return this;
     }
 
-    public PedidoBuilder pedidoWithEmptyItemPedidoList(){
-        pedido.of(LocalDateTime.now().minusDays(1), Status.REALIZADO, List.of());
-        return this;
-    }
-
-    public PedidoBuilder pedidoWithFutureDatetime(){
-        pedido.of(LocalDateTime.now().plusDays(2), Status.REALIZADO, ItemPedidoBuilder.getBuilder().buildList());
-        return this;
-    }
-
-    public PedidoBuilder validPedido(){
-        pedido.of(LocalDateTime.now().minusDays(2), Status.REALIZADO, ItemPedidoBuilder.getBuilder().buildList());
-        return this;
-    }
-
-    public PedidoBuilder pedidoToUpdateStatusRealizado(){
-        pedido.of(LocalDateTime.now().minusDays(2), Status.REALIZADO, ItemPedidoBuilder.getBuilder().buildList());
-        return this;
-    }
-
-    public PedidoBuilder pedidoUpdatedStatusEntregue(){
-        pedido.of(LocalDateTime.now().minusDays(2), Status.REALIZADO, ItemPedidoBuilder.getBuilder().buildList());
+    public PedidoBuilder validPedidoToSave(){
+        initValidItemPedidoListToWithPedido();
+        pedido = Pedido.of(baseLocalDateTime, Status.REALIZADO, itemPedidoList);
         return this;
     }
 
@@ -58,10 +53,15 @@ public class PedidoBuilder {
     }
 
     private void initPedidoList(){
-        pedidos = new ArrayList<Pedido>(3);
-        pedidos.add(pedido.of(LocalDateTime.now().minusDays(2), Status.REALIZADO, List.of(ItemPedidoBuilder.getBuilder().buildList())));
-        pedidos.add(pedido.of(LocalDateTime.now().minusDays(2), Status.ENTREGUE, List.of(ItemPedidoBuilder.getBuilder().buildList())));
-        pedidos.add(pedido.of(LocalDateTime.now().minusDays(2), Status.CANCELADO, List.of(ItemPedidoBuilder.getBuilder().buildList())));
+        pedidos = new ArrayList<>(3);
+        pedidos.add(Pedido.of(LocalDateTime.of(baseDate, baseTime), Status.REALIZADO, List.of()));
+        pedidos.add(Pedido.of(LocalDateTime.of(baseDate, baseTime), Status.ENTREGUE, List.of()));
+        pedidos.add(Pedido.of(LocalDateTime.of(baseDate, baseTime), Status.CANCELADO, List.of()));
+    }
+
+    private void initValidItemPedidoListToWithPedido(){
+        itemPedidoList = new ArrayList<>(1);
+        itemPedidoList.add(ItemPedido.of(1, "descricao do item", Pedido.of(baseLocalDateTime, Status.REALIZADO, itemPedidoList)));
     }
 
 }

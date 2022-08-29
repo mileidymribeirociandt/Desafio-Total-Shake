@@ -1,36 +1,39 @@
 package br.com.desafio.totalshake.service;
 
 import br.com.desafio.totalshake.builder.PedidoBuilder;
+import br.com.desafio.totalshake.controller.dto.PedidoDTO;
+import br.com.desafio.totalshake.domain.entity.Pedido;
+import br.com.desafio.totalshake.domain.repository.PedidoRepository;
 import br.com.desafio.totalshake.builder.PedidoDTOBuilder;
+import br.com.desafio.totalshake.service.exceptions.*;
+import br.com.desafio.totalshake.service.impl.PedidoServiceImpl;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class PedidoServiceTest {
 
     @InjectMocks
-    private PedidoService pedidoService;
+    private PedidoServiceImpl pedidoService;
 
     @Mock
     private PedidoRepository pedidoRepository;
 
-    private static final int NEGATIVE_ID = -2;
-    private static final int VALID_ID = 1;
-    private static final int ZERO_ID = 0;
-    private static final int NON_EXISTING_ID = Integer.MAX_VALUE;
+    private static final long NEGATIVE_ID = -2;
+    private static final long VALID_ID = 1;
+    private static final long ZERO_ID = 0;
+    private static final long NON_EXISTING_ID = Integer.MAX_VALUE;
 
     @BeforeAll
     public void openMocks() {
@@ -39,7 +42,7 @@ public class PedidoServiceTest {
 
     @Nested
     @DisplayName("Save pedido method scenarios test")
-    class SavePedidoTest{
+    class SavePedidoTestDTO {
 
         @Test
         void shouldThrowException_whenSavingEmptyPedido(){
@@ -49,9 +52,6 @@ public class PedidoServiceTest {
                     .emptyPedido()
                     .build();
 
-            when(pedidoRepository.save())
-                    .thenThrow(new EmptyPedidoException());
-
             Executable executable = () -> pedidoService.save(pedidoDTO);
 
             assertThrows(EmptyPedidoException.class, executable);
@@ -60,40 +60,34 @@ public class PedidoServiceTest {
         @Test
         void shouldThrowException_whenSavingPedidoWithEmptyListOfItemPedido(){
 
-            PedidoDTO pedidoDTO = PedidoBuilder
+            PedidoDTO pedidoDTO = PedidoDTOBuilder
                     .getBuilder()
                     .pedidoWithEmptyItemPedidoList()
                     .build();
 
-            when(pedidoRepository.save())
-                    .thenThrow(new InvalidItemPedidoException());
-
             Executable executable = () -> pedidoService.save(pedidoDTO);
 
-            assertThrows(InvalidItemPedidoException.class, executable);
+            assertThrows(EmptyItemPedidoListException.class, executable);
         }
 
         @Test
         void shouldThrowException_whenSavingPedidoWithDateTimeInFuture(){
 
-            PedidoDTO pedidoDTO = PedidoBuilder
+            PedidoDTO pedidoDTO = PedidoDTOBuilder
                     .getBuilder()
                     .pedidoWithFutureDatetime()
                     .build();
 
-            when(pedidoRepository.save())
-                    .thenThrow(new CreationDatetimeException());
-
             Executable executable = () -> pedidoService.save(pedidoDTO);
 
-            assertThrows(CreationDatetimeException.class, executable);
+            assertThrows(FutureDateTimeException.class, executable);
         }
 
     }
 
     @Nested
     @DisplayName("Find pedido methods scenarios test")
-    class FindPedidoTest{
+    class FindPedidoTestDTO {
 
         @Test
         void shouldThrowException_whenFindingListOfPedidosWithDatetimeInFuture(){
@@ -102,7 +96,7 @@ public class PedidoServiceTest {
 
             Executable executable = () -> pedidoService.findAllByDataHora(datetime);
 
-            assertThrows(FutureDatetimException.class, executable);
+            assertThrows(FutureDateTimeException.class, executable);
         }
 
         @Test
@@ -123,23 +117,34 @@ public class PedidoServiceTest {
         void shouldThrowException_whenFindingANonExistingPedido(){
             Executable executable = () -> pedidoService.findById(NON_EXISTING_ID);
 
+            Mockito.doAnswer(invocationOnMock -> {throw new PedidoNotFoundException();})
+                    .when(pedidoRepository)
+                    .findById(Mockito.anyLong());
+
             assertThrows(PedidoNotFoundException.class, executable);
         }
 
+        @SneakyThrows
         @Test
         void shouldFindPedido_whenIdIsValid(){
 
-            Pedido expectedPedido = PedidoBuilder
+            PedidoDTO expectedPedidoDTO = PedidoDTOBuilder
                     .getBuilder()
-                    .validPedido()
+                    .validPedidoToReturn()
                     .build();
 
-            Mockito.when(pedidoRepository.findById(Mockito.anyInt()))
-                    .then(invocationOnMock -> { return expectedPedido;});
+            Pedido expectedPedido = PedidoBuilder
+                    .getBuilder()
+                    .validPedidoToReturn()
+                    .build();
 
-            Pedido returnedPedido = pedidoService.findById(VALID_ID);
+            Mockito.doReturn(Optional.of(expectedPedido))
+                    .when(pedidoRepository)
+                    .findById(Mockito.anyLong());
 
-            assertEquals(expectedPedido, returnedPedido);
+            PedidoDTO returnedPedido = pedidoService.findById(VALID_ID);
+
+            assertEquals(expectedPedidoDTO, returnedPedido);
         }
 
         @Test
@@ -149,32 +154,36 @@ public class PedidoServiceTest {
                     .getBuilder()
                     .buildList();
 
-            Mockito.when(pedidoRepository.findAllByDataHora(Mockito.any()))
-                    .then(invocationOnMock -> {return expectedPedidos;});
+            List<PedidoDTO> expectedPedidosDTO = PedidoDTOBuilder
+                    .getBuilder()
+                    .buildList();
 
-            List<Pedido> returnedPedidos = pedidoService.findAllByDataHora(VALID_ID);
-            assertEquals(expectedPedidos, returnedPedidos);
+            Mockito.doReturn(expectedPedidos)
+                    .when(pedidoRepository)
+                    .findAllByDataHora(Mockito.any(LocalDateTime.class));
+
+            List<PedidoDTO> returnedPedidoDTOS = pedidoService.findAllByDataHora(PedidoDTOBuilder.getBuilder().getBaseLocalDateTime());
+            assertTrue(expectedPedidosDTO.containsAll(returnedPedidoDTOS));
         }
-
     }
 
     @Nested
     @DisplayName("Update pedido methods scenarios test")
-    class UpdatePedidoTest{
+    class UpdatePedidoTestDTO {
 
         @Test
         void shouldThrowException_whenUpdatingAPedidoRemovingAllItensFromTheList(){
 
-            PedidoDTO pedidoToUpdateDTO = PedidoBuilder
+            PedidoDTO pedidoDTOToUpdate = PedidoDTOBuilder
                     .getBuilder()
-                    .validPedido()
+                    .pedidoWithEmptyItemPedidoList()
                     .build();
 
-            pedidoToUpdateDTO.getItemPedidoList().clear();
+            pedidoDTOToUpdate.getItensPedidoList();
 
-            Executable executable = () -> pedidoService.updatePedido(pedidoToUpdate);
+            Executable executable = () -> pedidoService.update(pedidoDTOToUpdate, VALID_ID);
 
-            assertThrows(PedidoNotFoundException.class, executable);
+            assertThrows(EmptyItemPedidoListException.class, executable);
         }
 
     }
