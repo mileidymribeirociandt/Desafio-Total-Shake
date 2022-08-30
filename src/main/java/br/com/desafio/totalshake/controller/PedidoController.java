@@ -14,8 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping(path = "/api/pedidos")
 public class PedidoController {
-    //https://www.toptal.com/java/spring-boot-rest-api-error-handling#:~:text=ExceptionHandler%20is%20a%20Spring%20annotation,thrown%20within%20this%20controller%20only.
-    //https://www.bezkoder.com/spring-boot-restcontrolleradvice/
     @Autowired
     private PedidoService pedidoService;
 
@@ -30,7 +28,7 @@ public class PedidoController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<PedidoDTO>> findAlldPedidosBy(){
+    public ResponseEntity<List<PedidoDTO>> getPedidos(){
         return ResponseEntity.ok(pedidoService.findAll());
     }
 
